@@ -1,0 +1,72 @@
+name: Build package
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  AUTOBUILD_VARIABLES_FILE: ${{github.workspace}}/dep/build-variables/variables
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [windows-latest]
+        address_size: [64]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - name: Check out package
+      uses: actions/checkout@v2
+
+    - name: Check out autobuild
+      uses: actions/checkout@v2
+      with:
+        repository: catznip/autobuild
+        ref: main
+        path: 'dep/autobuild'
+        token: ${{ secrets.AUTH_PAT }}
+
+    - name: Check out build-variables
+      uses: actions/checkout@v2
+      with:
+        repository: catznipviewer/build-variables
+        ref: catznip/rtm/final
+        path: 'dep/build-variables'
+        token: ${{ secrets.AUTH_PAT }}
+
+    - name: Check out action-scp
+      uses: actions/checkout@v2
+      with:
+        repository: catznipviewer/action-scp
+        ref: main
+        path: 'dep/action-scp'
+        token: ${{ secrets.AUTH_PAT }}
+
+    - name: Set environment variables
+      run: |
+        echo "AUTOBUILD_BUILD_ID=$GITHUB_RUN_NUMBER" >> $GITHUB_ENV
+        echo "REPOSITORY_NAME=${GITHUB_REPOSITORY#*/}" >> $GITHUB_ENV
+      shell: bash
+
+    - name: Install Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '2.x'
+        architecture: 'x64'
+
+    - name: Install autobuild
+      run: pip install "dep/autobuild"
+
+    - name: Run autobuild build
+      run: autobuild build --address-size ${{ matrix.address_size }}
+
+    - name: Run autobuild package
+      run: autobuild package --address-size ${{ matrix.address_size }}
+
+    - name: Publish artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ env.REPOSITORY_NAME }}-${{ env.AUTOBUILD_BUILD_ID }}
+        path: ./*.tar.bz2

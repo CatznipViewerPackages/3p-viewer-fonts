@@ -50,10 +50,11 @@ jobs:
     - name: Set environment variables
       run: |
         echo "AUTOBUILD_BUILD_ID=$GITHUB_RUN_NUMBER" >> $GITHUB_ENV |
+        echo "ARTIFACT_DST_PATH=/artifacts/${GITHUB_REPOSITORY#*/}/" >> $GITHUB_ENV
         echo "REPOSITORY_NAME=${GITHUB_REPOSITORY#*/}" >> $GITHUB_ENV
       shell: bash
 
-    - name: Install Python
+    - name: Setup Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.x'
@@ -74,8 +75,18 @@ jobs:
     - name: Run autobuild package
       run: autobuild package --address-size ${{ matrix.address_size }}
 
-    - name: Publish artifact
+    - name: Publish package
       if: github.event_name != 'pull_request'
+      uses: ./dep/action-scp
+      with:
+        key: ${{ secrets.SCP_KEY }}
+        source_file: './*.tar.bz2'
+        destination_host: ${{ secrets.SCP_HOST }}
+        destination_username: ${{ secrets.SCP_USER }}
+        destination_file: ${{ env.ARTIFACT_DST_PATH }}
+
+    - name: Publish artifact
+      if: github.event_name != 'pull_request' && github.repository_visibility == 'public'
       uses: actions/upload-artifact@v3
       with:
         name: ${{ env.REPOSITORY_NAME }}-${{ env.AUTOBUILD_BUILD_ID }}

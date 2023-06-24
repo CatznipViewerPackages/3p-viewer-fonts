@@ -3,6 +3,8 @@ name: Build package
 on:
   push:
     branches: [ main ]
+  pull_request:
+    branches: [ main ]
   workflow_dispatch:
 
 env:
@@ -11,6 +13,7 @@ env:
 jobs:
   build:
     strategy:
+      fail-fast: false
       matrix:
         os: [windows-latest]
         address_size: [64]
@@ -18,18 +21,18 @@ jobs:
 
     steps:
     - name: Check out package
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
     - name: Check out autobuild
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
-        repository: catznipviewer/autobuild
+        repository: secondlife/autobuild
         ref: main
         path: 'dep/autobuild'
-        token: ${{ secrets.AUTH_PAT }}
+        #token: ${{ secrets.AUTH_PAT }}
 
     - name: Check out build-variables
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         repository: catznipviewer/build-variables
         ref: catznip/rtm/final
@@ -37,7 +40,7 @@ jobs:
         token: ${{ secrets.AUTH_PAT }}
 
     - name: Check out action-scp
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         repository: catznipviewer/action-scp
         ref: main
@@ -51,9 +54,9 @@ jobs:
       shell: bash
 
     - name: Install Python
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4
       with:
-        python-version: '2.x'
+        python-version: '3.x'
         architecture: 'x64'
 
     - name: Install autobuild
@@ -72,6 +75,7 @@ jobs:
       run: autobuild package --address-size ${{ matrix.address_size }}
 
     - name: Publish artifact
+      if: github.event_name != 'pull_request'
       uses: actions/upload-artifact@v3
       with:
         name: ${{ env.REPOSITORY_NAME }}-${{ env.AUTOBUILD_BUILD_ID }}

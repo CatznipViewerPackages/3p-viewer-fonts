@@ -26,10 +26,10 @@ jobs:
     - name: Check out autobuild
       uses: actions/checkout@v3
       with:
-        repository: catznipviewer/autobuild
+        repository: secondlife/autobuild
         ref: main
         path: 'dep/autobuild'
-        token: ${{ secrets.AUTH_PAT }}
+        #token: ${{ secrets.AUTH_PAT }}
 
     - name: Check out build-variables
       uses: actions/checkout@v3
